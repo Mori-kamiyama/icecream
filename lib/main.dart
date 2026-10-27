@@ -47,8 +47,9 @@ class _IcecreamAppState extends State<IcecreamApp> {
   Widget build(BuildContext context) {
     final subtotal = foods[food]! + fruits.length * 100
         + (deco == 'なし' ? 0 : decoCount * 50);
-    final tax = subtotal ~/ 10;
-    final total = subtotal + tax;
+    // 商品・追加料金はすべて税込。内税は合計×8÷108の1円未満切り捨て。
+    final total = subtotal;
+    final tax = total * 8 ~/ 108;
     final photo = SizedBox(width: 190, height: 145, child: Stack(children: [
       Positioned(top: 0, left: 0, right: 0, child: Center(
         child: Text(deco == 'なし' ? '' : List.filled(decoCount, deco.split(' ').first).join(),
@@ -96,35 +97,57 @@ class _IcecreamAppState extends State<IcecreamApp> {
         supply('🧻 紙ナプキン（無料）', napkin, (v) => napkin = v),
       ]);
     final bill = Column(children: [
-      Text('税抜 $subtotal 円 / 消費税 $tax 円'),
-      Text('合計 $total 円', style: const TextStyle(fontSize: 28)),
+      Text('税込合計 $total 円', style: const TextStyle(fontSize: 28)),
+      Text('うち消費税（8%） $tax 円'),
+      const Text('内税 = 税込合計 × 8 ÷ 108（1円未満切り捨て）',
+        style: TextStyle(fontSize: 11)),
     ]);
     final submit = Center(child: FilledButton(onPressed: () => setState(() {
       order = Random().nextInt(999) + 1;
-      receipt = '課題用・価格は税抜／税率10%\n'
-          '$food  ${foods[food]}円\n'
-          '追加具材: ${fruits.isEmpty ? 'なし' : fruits.join(' ')}\n'
-          '追加トッピング: ${deco == 'なし' ? 'なし' : '$deco × $decoCount'}\n'
+      receipt = '$food  ${foods[food]}円（税込）\n'
+          '追加具材: ${fruits.isEmpty ? 'なし' : fruits.join(' ')}  ${fruits.length * 100}円\n'
+          '追加トッピング: ${deco == 'なし' ? 'なし' : '$deco × $decoCount'}  ${deco == 'なし' ? 0 : decoCount * 50}円\n'
           '🥢 箸: ${spoon ? 'あり' : 'なし'}\n'
           '🧻 紙ナプキン: ${napkin ? 'あり' : 'なし'}\n'
-          '税抜: $subtotal 円 / 消費税（10%）: $tax 円\n'
-          '合計: $total 円';
+          '税込合計: $total 円\n'
+          '内税（8%）: $tax 円\n'
+          '（内税は合計×8÷108・1円未満切り捨て）';
     }), child: const Text('注文する')));
-    final ticket = order == 0 ? const SizedBox.shrink() : Card(child: Padding(
-      padding: const EdgeInsets.all(16), child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('注文番号 #$order', style: const TextStyle(fontSize: 26)),
-          Text(receipt),
+    final ticket = order == 0 ? const SizedBox.shrink() : Card(
+      color: Colors.white,
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2),
+        side: const BorderSide(color: Color(0xFFD8D0C4))),
+      child: Padding(padding: const EdgeInsets.all(20), child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text('たません屋', textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 3)),
+          const Text('高専祭 / ご注文控え', textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.black54)),
+          const Divider(height: 24),
+          Text('注文番号 #$order', textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Divider(height: 24),
+          Text.rich(TextSpan(children: [
+            for (final line in receipt.split('\n'))
+              TextSpan(text: '$line\n',
+                style: line.startsWith('税込合計:')
+                  ? const TextStyle(fontSize: 20, fontWeight: FontWeight.bold) : null),
+          ]), style: const TextStyle(fontSize: 13, height: 1.7, color: Colors.black87)),
+          const Divider(height: 20),
+          const Text('ありがとうございました', textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12)),
         ],
-      ),
-    ));
+      )),
+    );
 
     return Scaffold(
       appBar: AppBar(centerTitle: true, title: const Text('🍳 たません屋 POS')),
       body: Center(child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: ListView(padding: const EdgeInsets.all(16), children: [
-        const Text('課題用・価格は税抜／税率10%',
+        const Text('表示価格は税込・税率8%',
           textAlign: TextAlign.center,
           style: TextStyle(fontWeight: FontWeight.bold)),
         Center(child: photo),
